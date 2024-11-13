@@ -1,0 +1,346 @@
+-----------------------------------------------------------------------------------
+PR1: Basic SQL Table, Sequence, and Constraints
+Create Employees Table:
+
+sql
+Copy code
+CREATE TABLE Employees (
+    employee_id INT PRIMARY KEY AUTO_INCREMENT,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    hire_date DATE DEFAULT CURRENT_DATE,
+    salary DECIMAL(10, 2) CHECK (salary >= 3000),
+    department_id INT
+);
+Create Sequence for Employee IDs:
+
+sql
+Copy code
+CREATE SEQUENCE employee_seq START WITH 1001 INCREMENT BY 1;
+Insert Record Using Sequence:
+
+sql
+Copy code
+INSERT INTO Employees (employee_id, first_name, last_name, email, salary)
+VALUES (NEXTVAL('employee_seq'), 'John', 'Doe', 'john.doe@indianmail.com', 6000);
+Create View for High Salary Employees:
+
+sql
+Copy code
+CREATE VIEW EmployeeView AS
+SELECT employee_id, first_name, last_name, salary
+FROM Employees
+WHERE salary >= 5000;
+Create Index on Email Column:
+
+sql
+Copy code
+CREATE INDEX idx_email ON Employees (email);
+Create Departments Table and Foreign Key in Employees:
+
+sql
+Copy code
+CREATE TABLE Departments (
+    department_id INT PRIMARY KEY,
+    department_name VARCHAR(100) NOT NULL
+);
+
+ALTER TABLE Employees
+ADD CONSTRAINT fk_department FOREIGN KEY (department_id) REFERENCES Departments(department_id);
+Create Synonym for Employees Table:
+
+sql
+Copy code
+CREATE SYNONYM Emp FOR Employees;
+-------------------------------------------------------------------------------------------------
+PR2: Alter Table and Constraints
+Alter Salary Data Type and Rename Employees Table to Staff:
+
+sql
+Copy code
+ALTER TABLE Employees MODIFY COLUMN salary DECIMAL(15, 2);
+RENAME TABLE Employees TO Staff;
+Create Composite Index on First Name and Salary:
+
+sql
+Copy code
+CREATE INDEX idx_name_salary ON Staff (first_name, salary);
+Check Constraint on Hire Date:
+
+sql
+Copy code
+ALTER TABLE Staff
+ADD CONSTRAINT chk_hire_date CHECK (hire_date <= CURRENT_DATE);
+-----------------------------------------------------------------------------------------------------
+PR3: Multiple Table Creation and Basic Queries
+Create Tables for Students, Departments, Courses, and Enrollments:
+sql
+Copy code
+CREATE TABLE Students (
+    student_id INT PRIMARY KEY AUTO_INCREMENT,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    department_id INT,
+    enrollment_date DATE,
+    phone_number VARCHAR(15),
+    FOREIGN KEY (department_id) REFERENCES Departments(department_id)
+);
+
+CREATE TABLE Courses (
+    course_id INT PRIMARY KEY,
+    course_name VARCHAR(100),
+    department_id INT,
+    course_fee INT,
+    FOREIGN KEY (department_id) REFERENCES Departments(department_id)
+);
+
+CREATE TABLE Enrollments (
+    enrollment_id INT PRIMARY KEY,
+    student_id INT,
+    course_id INT,
+    enrollment_date DATE,
+    grade VARCHAR(10),
+    FOREIGN KEY (student_id) REFERENCES Students(student_id),
+    FOREIGN KEY (course_id) REFERENCES Courses(course_id)
+);
+
+-------------------------PR4: Advanced SQL Queries-------------------------------------
+Get Course Enrollment Count:
+
+sql
+Copy code
+SELECT course_name, COUNT(enrollment_id) AS num_students
+FROM Courses
+LEFT JOIN Enrollments ON Courses.course_id = Enrollments.course_id
+GROUP BY course_name;
+Find Students Not Enrolled in Any Courses:
+
+sql
+Copy code
+SELECT * FROM Students
+WHERE student_id NOT IN (SELECT student_id FROM Enrollments);
+--------------------------------------------------------------------------------
+PR5: MongoDB CRUD Operations
+Insert Single Document into Products Collection:
+
+javascript
+Copy code
+db.products.insertOne({
+    name: "Laptop",
+    category: "Electronics",
+    price: 1200,
+    stock: 50
+});
+Insert Multiple Documents into Orders Collection:
+
+javascript
+Copy code
+db.orders.insertMany([
+    {
+        orderId: 1001,
+        customerName: "John Doe",
+        items: [
+            { name: "Laptop", quantity: 1 },
+            { name: "Mouse", quantity: 2 }
+        ],
+        orderDate: new Date("2024-11-11")
+    },
+    {
+        orderId: 1002,
+        customerName: "Jane Smith",
+        items: [
+            { name: "Tablet", quantity: 1 }
+        ],
+        orderDate: new Date("2024-11-12")
+    }
+]);
+Find All Electronics Products:
+
+javascript
+Copy code
+db.products.find({ category: "Electronics" });
+PR6: MongoDB Data Updates and Advanced Queries
+Update Stock for Product Category "Electronics":
+
+javascript
+Copy code
+db.products.updateMany(
+    { category: "Electronics" },
+    { $inc: { stock: 10 } }
+);
+Add Tag to Blog Post:
+
+javascript
+Copy code
+db.posts.updateOne(
+    { title: "Introduction to MongoDB" },
+    { $push: { tags: "Tutorial" } }
+);
+---------------------------------------------------------------------------------
+PR7: PL/SQL Control Structure with Exception Handling
+Borrower and Fine Table Management with PL/SQL Block:
+plsql
+Copy code
+DECLARE
+    days_late INT;
+    fine_amt INT;
+BEGIN
+    SELECT (SYSDATE - Date_of_Issue) INTO days_late
+    FROM Borrower
+    WHERE Roll_no = :roll_no AND Name_of_Book = :name_of_book;
+
+    IF days_late > 15 AND days_late <= 30 THEN
+        fine_amt := days_late * 5;
+    ELSIF days_late > 30 THEN
+        fine_amt := days_late * 50;
+    END IF;
+
+    IF fine_amt > 0 THEN
+        INSERT INTO Fine (Roll_no, Date, Amt) VALUES (:roll_no, SYSDATE, fine_amt);
+    END IF;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('No records found.');
+END;
+-----------------------------------------------------------------------------------------------
+PR8: Cursors in PL/SQL for Order Management
+PL/SQL Cursor to Fetch Order Details
+plsql
+Copy code
+DECLARE
+    CURSOR order_cursor IS
+        SELECT order_id, customer_name, order_date
+        FROM Orders
+        WHERE order_date >= SYSDATE - 30;
+    
+    order_record order_cursor%ROWTYPE;
+BEGIN
+    OPEN order_cursor;
+    LOOP
+        FETCH order_cursor INTO order_record;
+        EXIT WHEN order_cursor%NOTFOUND;
+
+        DBMS_OUTPUT.PUT_LINE('Order ID: ' || order_record.order_id);
+        DBMS_OUTPUT.PUT_LINE('Customer Name: ' || order_record.customer_name);
+        DBMS_OUTPUT.PUT_LINE('Order Date: ' || order_record.order_date);
+        DBMS_OUTPUT.PUT_LINE('-------------------------------');
+    END LOOP;
+    CLOSE order_cursor;
+END;
+-----------------------------------------------------------------------------------
+PR9: Trigger in SQL for Inventory Management
+Trigger to Update Stock on Order Insert:
+sql
+Copy code
+CREATE TRIGGER update_stock_after_order
+AFTER INSERT ON Orders
+FOR EACH ROW
+BEGIN
+    DECLARE
+        item_name VARCHAR(100);
+        item_quantity INT;
+    BEGIN
+        FOR item IN (SELECT name, quantity FROM NEW.items) LOOP
+            UPDATE Products
+            SET stock = stock - item.quantity
+            WHERE name = item.name;
+        END LOOP;
+    END;
+END
+------------------------------------------------------------------------------------
+PR10: Advanced PL/SQL for Multi-Table Operations
+PL/SQL Block to Calculate Total Enrollment Fee for Each Department:
+plsql
+Copy code
+DECLARE
+    dept_id INT;
+    total_fee INT;
+BEGIN
+    FOR dept IN (SELECT department_id FROM Departments) LOOP
+        SELECT SUM(course_fee) INTO total_fee
+        FROM Courses
+        WHERE department_id = dept.department_id;
+
+        DBMS_OUTPUT.PUT_LINE('Department ID: ' || dept.department_id);
+        DBMS_OUTPUT.PUT_LINE('Total Enrollment Fee: ' || total_fee);
+        DBMS_OUTPUT.PUT_LINE('-------------------------------');
+    END LOOP;
+END;
+-------------------------------------------------------------------------------------
+PR11: MongoDB Aggregation Pipeline
+Calculate Average Order Quantity by Product Category:
+javascript
+Copy code
+db.orders.aggregate([
+    { $unwind: "$items" },
+    {
+        $lookup: {
+            from: "products",
+            localField: "items.name",
+            foreignField: "name",
+            as: "productDetails"
+        }
+    },
+    { $unwind: "$productDetails" },
+    {
+        $group: {
+            _id: "$productDetails.category",
+            avgQuantity: { $avg: "$items.quantity" }
+        }
+    }
+])
+---------------------------------------------------------------------------------
+PR12: MongoDB Data Modeling for E-commerce Schema
+Define a Products Collection with Embedded Reviews:
+javascript
+Copy code
+db.products.insertOne({
+    name: "Smartphone",
+    category: "Electronics",
+    price: 699,
+    stock: 30,
+    reviews: [
+        { customerName: "Alice", rating: 4, comment: "Great value!" },
+        { customerName: "Bob", rating: 5, comment: "Loved the features." }
+    ]
+});
+PR13: MongoDB Full-Text Search and Indexing
+Create Full-Text Index on Blog Collection and Search by Keywords:
+javascript
+Copy code
+db.blogs.createIndex({ title: "text", content: "text" });
+
+db.blogs.find({ $text: { $search: "Web3 NFT ownership" } });
+----------------------------------------------------------------------------------------
+PR14: PL/SQL Stored Procedures and Functions
+Stored Procedure to Calculate Discount on Bulk Orders:
+
+plsql
+Copy code
+CREATE OR REPLACE PROCEDURE calculate_discount(
+    order_id IN INT,
+    discount_percentage IN NUMBER,
+    total_price OUT NUMBER
+) IS
+BEGIN
+    SELECT SUM(price * quantity * (1 - discount_percentage / 100))
+    INTO total_price
+    FROM OrderItems
+    WHERE order_id = order_id;
+END calculate_discount;
+Function to Calculate Total Enrollment Fee for Student:
+
+plsql
+Copy code
+CREATE OR REPLACE FUNCTION total_fee(student_id IN INT) RETURN NUMBER IS
+    total NUMBER;
+BEGIN
+    SELECT SUM(c.course_fee)
+    INTO total
+    FROM Enrollments e
+    JOIN Courses c ON e.course_id = c.course_id
+    WHERE e.student_id = student_id;
+    RETURN total;
+END total_fee;

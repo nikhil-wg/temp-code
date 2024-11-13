@@ -1,0 +1,353 @@
+Practical 1:- Implement depth first search algorithm and Breadth First Search 
+algorithm. Use an undirected graph and develop a recursive algorithm for searching 
+all the vertices of a graph or tree data structure. 
+
+
+def bfs(graph, start, goal):
+    visited, queue = [], [start]
+    while queue:
+        node = queue.pop(0)
+        if node not in visited:
+            print(node, end=" ")
+            visited.append(node)
+            if node == goal:
+                print(f"\nGoal {goal} found in BFS!")
+                return
+            queue.extend(graph.get(node, []))
+    print(f"\nGoal {goal} not found in BFS.")
+
+def dfs(graph, node, goal, visited=set()):
+    if node not in visited:
+        print(node, end=" ")
+        visited.add(node)
+        if node == goal:
+            print(f"\nGoal {goal} found in DFS!")
+            return
+        for neighbor in graph.get(node, []):
+            dfs(graph, neighbor, goal, visited)
+
+# Input graph
+graph = {}
+for _ in range(int(input("Enter number of nodes: "))):
+    node = input("Enter node: ")
+    neighbors = input(f"Enter neighbors of {node}: ").split()
+    graph[node] = neighbors
+
+goal = input("Enter the goal node: ")
+
+# Perform BFS and DFS
+bfs(graph, input("Enter start node for BFS: "), goal)
+dfs(graph, input("Enter start node for DFS: "), goal)
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+2)Implement A star (A*) Algorithm for any game search problem.
+
+import heapq
+
+def a_star(graph, start, goal, heuristic):
+    open_list = [(0 + heuristic[start], 0, start)]  # (f, g, node)
+    g_costs = {start: 0}  # g(n) = cost from start to current node
+    came_from = {}  # To reconstruct the path
+
+    while open_list:
+        # Pop the node with the lowest f value (f, g, current)
+        node_info = heapq.heappop(open_list)
+        f_value = node_info[0]
+        g_value = node_info[1]
+        current = node_info[2]
+
+        if current == goal:  # Goal reached
+            path = []
+            while current in came_from:  # Reconstruct path from goal to start
+                path.append(current)
+                current = came_from[current]
+            path.append(start)
+            path.reverse()  # Return path from start to goal
+            return path, g_costs[goal]
+
+        for neighbor, cost in graph.get(current, []):
+            g_new = g_value + cost
+            if neighbor not in g_costs or g_new < g_costs[neighbor]:
+                g_costs[neighbor] = g_new
+                f = g_new + heuristic[neighbor]
+                heapq.heappush(open_list, (f, g_new, neighbor))  # Add to open list
+                came_from[neighbor] = current  # Track the path
+
+    return None, None  # No path found
+
+# Example usage:
+graph = {
+    'A': [('B', 1), ('C', 4)],  # A connects to B with cost 1, and C with cost 4
+    'B': [('C', 2), ('d', 2)],  # B connects to C with cost 2
+    'C': []                    # C is the goal, no outgoing edges
+}
+heuristic = {'A': 3, 'B': 1, 'C': 0, 'd': 5}  # Heuristic values
+
+start, goal = 'A', 'C'
+
+path, cost = a_star(graph, start, goal, heuristic)
+print(f"Path: {path}, Total cost: {cost}")
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Practical 3:- Implement a solution for a Constraint Satisfaction Problem using Branch 
+and Bound and Backtracking for n-queens problem or a graph coloring problem.
+
+def is_safe(board, row, col):
+    for i in range(row):
+        if board[i] == col or \
+           board[i] - i == col - row or \
+           board[i] + i == col + row:
+            return False
+    return True
+
+def solve_n_queens(n, board=[], row=0):
+    if row == n:
+        print("\n".join(' '.join('Q' if board[i] == j else '.' for j in range(n)) for i in range(n)))
+        return True
+    for col in range(n):
+        if is_safe(board, row, col):
+            board.append(col)
+            if solve_n_queens(n, board, row + 1): return True
+            board.pop()  # backtrack
+    return False
+
+# Example usage:
+n = 8
+solve_n_queens(n)
+
+
+///////////alpha beta /////////////////////////////////////////////////////////////////
+# Python3 program to demonstrate
+# working of Alpha-Beta Pruning
+
+# Initial values of Alpha and Beta
+MAX, MIN = 1000, -1000
+
+# Returns optimal value for current player
+# (Initially called for root and maximizer)
+def minimax(depth, nodeIndex, maximizingPlayer, values, alpha, beta):
+    # Terminating condition. i.e leaf node is reached
+    if depth == 3:
+        return values[nodeIndex]
+    
+    if maximizingPlayer:
+        best = MIN
+        # Recur for left and right children
+        for i in range(0, 2):
+            val = minimax(depth + 1, nodeIndex * 2 + i, False, values, alpha, beta)
+            best = max(best, val)
+            alpha = max(alpha, best)
+            # Alpha Beta Pruning
+            if beta <= alpha:
+                break
+        return best
+    else:
+        best = MAX
+        # Recur for left and right children
+        for i in range(0, 2):
+            val = minimax(depth + 1, nodeIndex * 2 + i, True, values, alpha, beta)
+            best = min(best, val)
+            beta = min(beta, best)
+            # Alpha Beta Pruning
+            if beta <= alpha:
+                break
+        return best
+
+# Driver Code
+if __name__ == "__main__":
+    # Given values at leaf nodes
+    values = [3, 5, 6, 9, 1, 2, 0, -1]
+    
+    # Calling minimax function
+    print("The optimal value is:", minimax(0, 0, True, values, MIN, MAX))
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+Practical 4:- Implement Greedy search algorithm for any of the following application: 
+a)Prim's Minimal Spanning Tree Algorithm  
+b)Kruskal's Minimal Spanning Tree Algorithm  
+C)Dijkstra's Minimal Spanning Tree Algorithm 
+
+
+
+# prim_mst.py
+import heapq
+
+def prim_mst(graph, start):
+    # Create a priority queue (min-heap)
+    min_heap = []
+    visited = set()
+    mst_edges = []
+    total_cost = 0
+
+    # Function to add edges to the min-heap
+    def add_edges(node):
+        visited.add(node)
+        for neighbor, weight in graph[node]:
+            if neighbor not in visited:
+                heapq.heappush(min_heap, (weight, node, neighbor))
+
+    # Start with the starting node
+    add_edges(start)
+
+    # Process the edges until all nodes are visited
+    while min_heap:
+        weight, node1, node2 = heapq.heappop(min_heap)
+        if node2 not in visited:
+            mst_edges.append((node1, node2, weight))
+            total_cost += weight
+            add_edges(node2)
+    
+    return mst_edges, total_cost
+
+# Example graph as adjacency list: {node: [(neighbor, weight), ...]}
+graph = {
+    0: [(1, 4), (2, 3)],
+    1: [(0, 4), (2, 1), (3, 2)],
+    2: [(0, 3), (1, 1), (3, 4)],
+    3: [(1, 2), (2, 4)],
+}
+
+start_node = 0
+mst_edges, total_cost = prim_mst(graph, start_node)
+print("MST Edges:", mst_edges)
+print("Total Cost:", total_cost)
+///////////////////////////////////////////////
+# kruskal_mst.py
+class DisjointSet:
+    def __init__(self, n):
+        self.parent = list(range(n))
+        self.rank = [0] * n
+
+    def find(self, x):
+        if self.parent[x] != x:
+            self.parent[x] = self.find(self.parent[x])
+        return self.parent[x]
+
+    def union(self, x, y):
+        rootX = self.find(x)
+        rootY = self.find(y)
+        
+        if rootX != rootY:
+            if self.rank[rootX] > self.rank[rootY]:
+                self.parent[rootY] = rootX
+            elif self.rank[rootX] < self.rank[rootY]:
+                self.parent[rootX] = rootY
+            else:
+                self.parent[rootY] = rootX
+                self.rank[rootX] += 1
+            return True
+        return False
+
+def kruskal_mst(graph, n):
+    edges = []
+    for node1 in graph:
+        for node2, weight in graph[node1]:
+            edges.append((weight, node1, node2))
+    
+    # Sort edges by weight
+    edges.sort()
+
+    mst_edges = []
+    total_cost = 0
+    disjoint_set = DisjointSet(n)
+
+    for weight, node1, node2 in edges:
+        if disjoint_set.union(node1, node2):
+            mst_edges.append((node1, node2, weight))
+            total_cost += weight
+
+    return mst_edges, total_cost
+
+# Example graph as adjacency list: {node: [(neighbor, weight), ...]}
+graph = {
+    0: [(1, 4), (2, 3)],
+    1: [(0, 4), (2, 1), (3, 2)],
+    2: [(0, 3), (1, 1), (3, 4)],
+    3: [(1, 2), (2, 4)],
+}
+
+num_nodes = 4  # Number of nodes
+mst_edges, total_cost = kruskal_mst(graph, num_nodes)
+print("MST Edges:", mst_edges)
+print("Total Cost:", total_cost)
+////////////////////////////////////////////////
+# dijkstra.py
+import heapq
+
+def dijkstra(graph, start):
+    # Priority queue to store (distance, node)
+    min_heap = [(0, start)]
+    distances = {node: float('inf') for node in graph}
+    distances[start] = 0
+    previous_nodes = {node: None for node in graph}
+
+    while min_heap:
+        current_distance, current_node = heapq.heappop(min_heap)
+
+        if current_distance > distances[current_node]:
+            continue
+
+        for neighbor, weight in graph[current_node]:
+            distance = current_distance + weight
+            if distance < distances[neighbor]:
+                distances[neighbor] = distance
+                previous_nodes[neighbor] = current_node
+                heapq.heappush(min_heap, (distance, neighbor))
+
+    return distances, previous_nodes
+
+# Example graph as adjacency list: {node: [(neighbor, weight), ...]}
+graph = {
+    0: [(1, 4), (2, 3)],
+    1: [(0, 4), (2, 1), (3, 2)],
+    2: [(0, 3), (1, 1), (3, 4)],
+    3: [(1, 2), (2, 4)],
+}
+
+start_node = 0
+distances, previous_nodes = dijkstra(graph, start_node)
+
+print("Shortest Distances from Node", start_node, ":", distances)
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+Practical 5:- Develop an elementary chatbot for any suitable customer interaction 
+application. 
+Code:-
+
+class Chatbot:
+    def __init__(self):
+        self.responses = {
+            'greet': 'Hello! How can I assist you today?',
+            'goodbye': 'Goodbye! Have a great day!',
+            'help': 'I can help with order status or general questions.',
+            'default': 'Sorry, I didn’t understand. Can you rephrase?'
+        }
+
+    def get_response(self, user_input):
+        user_input = user_input.lower()
+        if 'hello' in user_input or 'hi' in user_input:
+            return self.responses['greet']
+        elif 'bye' in user_input:
+            return self.responses['goodbye']
+        elif 'help' in user_input:
+            return self.responses['help']
+        else:
+            return self.responses['default']
+
+    def chat(self):
+        print("Chatbot: Hi! Type 'bye' to exit.")
+        while True:
+            user_input = input("You: ")
+            if user_input.lower() in ['bye', 'exit']:
+                print("Chatbot:", self.responses['goodbye'])
+                break
+            print("Chatbot:", self.get_response(user_input))
+
+# Run the chatbot
+if __name__ == "__main__":
+    bot = Chatbot()
+    bot.chat()
